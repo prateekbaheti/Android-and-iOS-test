@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  applicationContext-suite.xml configures all beans with suite scope, for example drivers or the System Under Test itself.
+  The default name and classpath location of this file can be overridden by -DsuiteContext=
+  This can be used to run the same test suite against different configurations.
+-->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:lang="http://www.springframework.org/schema/lang"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+   	   http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+  <context:annotation-config/> 
+
+    <context:component-scan base-package="com.foo"/>
+
+  <!--
+    The PropertyPlaceholderConfigurer loads properties from a file to be used in this configuration file.
+    The SYSTEM_PROPERTIES_MODE_OVERRIDE enables overriding property values from the command line.
+  -->
+  <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+    <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+    <property name="locations">
+      <value>classpath:twist.properties</value>
+    </property>
+  </bean>
+
+
+  <!-- Uncomment the following bean definition to set system properties. You may delete the example entries -->
+  <!--
+  <bean id="systemproperty" class="com.thoughtworks.twist.core.SystemPropertyInitializingBean">
+    <property name="systemProperties">
+       <map>
+        <entry key="http.proxyHost" value="hostName"/>
+        <entry key="http.proxyPort" value="port"/>
+        <entry key="http.proxyUser" value="proxyUser"/>
+        <entry key="http.proxyPassword" value="proxyPassword"/>
+      </map>
+    </property>
+  </bean>
+  -->
+  
+  	
+    <bean id="IOSDriverFactory" class="com.thoughtworks.twist.driver.ios.IOSDriverFactory"
+        init-method="start" destroy-method="stop" lazy-init="true">
+        <property name="projectPath" value="${ios.project_path}"/>
+        <property name="deviceType" value="${ios.device}"/>
+        <property name="deviceEndPoint" value="${ios.device_end_point}"/>
+        <property name="appBundlePath" value="${ios.app_bundle_path}"/>
+        <property name="appBundleId" value="${ios.app_bundle_id}"/>
+        <property name="noLaunch" value="${ios.no_launch}"/>
+        <property name="sdkVersion" value="${ios.sdk_version}"/>
+        <property name="detectConnectedDevice" value="${ios.detect_connected_device}"/>
+        <property name="deviceTarget" value="${ios.device_target}"/>
+        <property name="pauseTime" value="${ios.pause_time}"/>
+        <property name="calabashDebug" value="${ios.calabash_debug}"/>
+    </bean>
+    
+    <bean id="androidDriverFactory" class="com.thoughtworks.twist.driver.android.AndroidDriverFactory"
+        init-method="initialize" destroy-method="destroy" lazy-init="true">
+        <property name="apkPath" value="${android.apk.path}"/>
+        <property name="androidHome" value="${android.home}"/>
+        <property name="serial" value="${android.serial}"/>
+        <property name="deviceName" value="${android.device.name}"/>
+        <property name="reinstallApp" value="${android.reinstall.app}"/>
+        <property name="pauseTime" value="${android.pause_time}"/>
+    </bean>
+   
+    <bean id="androidApplication" factory-bean="androidDriverFactory" factory-method="getApplication"
+        lazy-init="true" scope="singleton">
+    </bean>
+    
+    <bean id="iosApplication" factory-bean="IOSDriverFactory" factory-method="getApplication"
+        lazy-init="true" scope="singleton">
+    </bean>
+    
+	<bean id="screenshotListener" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass" value="com.thoughtworks.twist.core.execution.report.CustomScreenshotListenerFactory"/>
+		<property name="targetMethod" value="addCustomScreenshotListener"/>
+		<property name="arguments">
+		<list>
+		<ref bean="#{systemProperties['spring.profiles.active']}Application"/>
+		</list>
+		</property>
+    </bean>
+
+
+
+		<bean id="twistDataStoreFactory" class="com.thoughtworks.twist.core.execution.TwistDataStoreFactory">
+		</bean>
+		<bean id="twistSuiteStore" factory-bean="twistDataStoreFactory" 			factory-method="getSuiteStore"			scope="singleton">
+		</bean>
+</beans>
